@@ -1,0 +1,182 @@
+#include <Wire.h>
+#include <SI470X.h>
+#include <EEPROM.h> // MÁGICA AQUI: Memória não-volátil!
+
+#define PINO_RESET 14 // D5
+SI470X rx;
+
+char ultimaMensagem[65] = ""; 
+const int PINO_SIRENE = 12; // D6 (Buzzer Passivo)
+
+// ==================================================
+// 2. IDENTIDADE GEOGRÁFICA DESTE NÓ (Agora são Variáveis Dinâmicas)
+// ==================================================
+const String ID_NACIONAL = "00000"; // Fixo, nunca muda
+String ID_ESTADUAL       = "00010"; // Variável
+String ID_MUNICIPAL      = "00011"; // Variável
+String ID_BAIRRO         = "00012"; // Variável
+
+// Variáveis do Motor de Estado do Alarme
+char estadoAlarmeAtual = '0'; // '0'=OFF, '1'=Seguro, '2'=Aviso, '3'=Crítico
+unsigned long tempoInicioAllClear = 0;
+bool tocandoAllClear = false;
+
+void limparTexto(char* texto) {
+  if (texto == NULL) return;
+  for (int i = 0; i < strlen(texto); i++) {
+    if (!isprint(texto[i])) texto[i] = ' '; 
+  }
+}
+
+// ==================================================
+// FUNÇÕES DE PROVISIONAMENTO EEPROM
+// ==================================================
+void carregarIDsDaMemoria() {
+  EEPROM.begin(64); // Reserva 64 bytes da memória flash
+  
+  // O byte 0 é a nossa flag. 'G' significa que já tem dados gravados.
+  if (EEPROM.read(0) == 'G') { 
+    ID_ESTADUAL = "";
+    ID_MUNICIPAL = "";
+    ID_BAIRRO = "";
+    
+    for(int i = 0; i < 5; i++) ID_ESTADUAL  += (char)EEPROM.read(1 + i);
+    for(int i = 0; i < 5; i++) ID_MUNICIPAL += (char)EEPROM.read(6 + i);
+    for(int i = 0; i < 5; i++) ID_BAIRRO    += (char)EEPROM.read(11 + i);
+    
+    Serial.println("Memória carregada: E=" + ID_ESTADUAL + " M=" + ID_MUNICIPAL + " B=" + ID_BAIRRO);
+  } else {
+    Serial.println("Nó virgem. Usando IDs padrão.");
+  }
+}
+
+void gravarIDsNaMemoria(String est, String mun, String bai) {
+  EEPROM.write(0, 'G'); // Assina o byte 0
+  
+  for(int i = 0; i < 5; i++) EEPROM.write(1 + i, est[i]);
+  for(int i = 0; i < 5; i++) EEPROM.write(6 + i, mun[i]);
+  for(int i = 0; i < 5; i++) EEPROM.write(11 + i, bai[i]);
+  
+  EEPROM.commit(); // Salva de fato na flash
+  
+  // Atualiza as variáveis que rodam na memória RAM
+  ID_ESTADUAL = est;
+  ID_MUNICIPAL = mun;
+  ID_BAIRRO = bai;
+}
+
+void setup() {
+  Serial.begin(115200);
+  
+  pinMode(PINO_SIRENE, OUTPUT);
+  noTone(PINO_SIRENE); 
+
+  carregarIDsDaMemoria(); // Puxa os dados salvos antes de ligar o rádio
+
+  pinMode(PINO_RESET, OUTPUT);
+  digitalWrite(PINO_RESET, LOW); delay(100); 
+  digitalWrite(PINO_RESET, HIGH); delay(100); 
+
+  Wire.begin(4, 5); 
+  rx.setup(PINO_RESET, 4); 
+  rx.setFrequency(10610); 
+  rx.setVolume(0); 
+  rx.setRDS(true);
+
+  Serial.println("✅ Receptor Defesa Civil V2.0 (Provisionamento Ativo)");
+}
+
+void processarPayload(String payload) {
+  String idRecebido = payload.substring(0, 5);
+  char comandoRecebido = payload.charAt(5);
+  
+  if (idRecebido == ID_NACIONAL  || 
+      idRecebido == ID_ESTADUAL  || 
+      idRecebido == ID_MUNICIPAL || 
+      idRecebido == ID_BAIRRO) {
+      
+      if (estadoAlarmeAtual != comandoRecebido) {
+         estadoAlarmeAtual = comandoRecebido;
+         Serial.print("[RDS] Alarme Aceito! Novo Estado: ");
+         Serial.println(comandoRecebido);
+         
+         if(estadoAlarmeAtual == '1') {
+            tempoInicioAllClear = millis();
+            tocandoAllClear = true;
+         }
+      }
+  }
+}
+
+void tocarSirene() {
+  unsigned long agora = millis();
+
+  if (estadoAlarmeAtual == '0') {
+    noTone(PINO_SIRENE);
+    tocandoAllClear = false;
+  }
+  else if (estadoAlarmeAtual == '1') {
+    if (tocandoAllClear) {
+      if (agora - tempoInicioAllClear < 2000) {
+        tone(PINO_SIRENE, 1500); 
+      } else {
+        noTone(PINO_SIRENE);
+        tocandoAllClear = false;
+        estadoAlarmeAtual = '0';
+      }
+    }
+  }
+  else if (estadoAlarmeAtual == '2') {
+    if (agora % 2000 < 1000) tone(PINO_SIRENE, 800);
+    else noTone(PINO_SIRENE);
+  }
+  else if (estadoAlarmeAtual == '3') {
+    if (agora % 600 < 300) tone(PINO_SIRENE, 1200);
+    else tone(PINO_SIRENE, 1800);
+  }
+}
+
+void loop() {
+  // ==================================================
+  // COMUNICAÇÃO DE PROVISIONAMENTO USB (PYTHON)
+  // ==================================================
+  if (Serial.available()) {
+    String comandoUsb = Serial.readStringUntil('\n');
+    comandoUsb.trim();
+    
+    if (comandoUsb.equals("PING_ID")) {
+      Serial.println("SYS_ID:RECEPTOR"); 
+    }
+    // Recebe e corta a string GRAVAR_IDS:00010,00011,00012
+    else if (comandoUsb.startsWith("GRAVAR_IDS:")) {
+      String dadosIds = comandoUsb.substring(11);
+      int virgula1 = dadosIds.indexOf(',');
+      int virgula2 = dadosIds.lastIndexOf(',');
+      
+      if (virgula1 > 0 && virgula2 > virgula1) {
+        String novoEst = dadosIds.substring(0, virgula1);
+        String novoMun = dadosIds.substring(virgula1 + 1, virgula2);
+        String novoBai = dadosIds.substring(virgula2 + 1);
+        
+        gravarIDsNaMemoria(novoEst, novoMun, novoBai);
+        Serial.println("EEPROM_OK"); // Avisa o Python que deu tudo certo!
+      }
+    }
+  }
+
+  tocarSirene();
+
+  if (rx.getRdsReady()) { 
+    char* radioText = rx.getRdsText2A(); 
+    if (radioText != NULL) {
+      limparTexto(radioText);
+      if (strcmp(radioText, ultimaMensagem) != 0) {
+        strcpy(ultimaMensagem, radioText);
+        String msg = String(ultimaMensagem);
+        if (msg.length() >= 6) {
+          processarPayload(msg);
+        }
+      }
+    }
+  }
+}
