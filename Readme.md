@@ -528,24 +528,6 @@ A arquitetura atual permite evoluções como:
 
 ---
 
-## 📚 Citação
-
-Caso este repositório acompanhe um artigo científico, substitua os campos abaixo pelos metadados definitivos da publicação antes de disponibilizar a versão final:
-
-```bibtex
-@inproceedings{TODO2026RDSAlert,
-  title     = {TÍTULO DO ARTIGO},
-  author    = {AUTORES},
-  booktitle = {Anais do Simpósio Brasileiro de Sistemas Multimídia e Web (WebMedia)},
-  year      = {2026},
-  publisher = {SBC}
-}
-```
-
----
-
 ## 📄 Licença
 
-Defina a licença do projeto antes da publicação e adicione o arquivo `LICENSE` correspondente ao repositório.
-
-Se este trabalho utilizar a mesma política de licenciamento do projeto de referência, atualize esta seção com a licença escolhida e o respectivo badge no topo do documento.
+A licença deste repositório, incluindo programas, códigos e seus diagramas como um todo são classificadas dentro da Licença Pública Geral GNU v3 (GPL-3.0)
