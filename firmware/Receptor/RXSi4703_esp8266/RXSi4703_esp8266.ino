@@ -9,7 +9,7 @@ char ultimaMensagem[65] = "";
 const int PINO_SIRENE = 12; // D6 (Buzzer Passivo)
 
 // ==================================================
-// 2. IDENTIDADE GEOGRÁFICA DESTE NÓ (Agora são Variáveis Dinâmicas)
+// 2. IDENTIDADE GEOGRÁFICA DESTE NÓ 
 // ==================================================
 const String ID_NACIONAL = "00000"; // Fixo, nunca muda
 String ID_ESTADUAL       = "00010"; // Variável
