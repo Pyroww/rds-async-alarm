@@ -1,6 +1,6 @@
 #include <Wire.h>
 #include <SI470X.h>
-#include <EEPROM.h> // MÁGICA AQUI: Memória não-volátil!
+#include <EEPROM.h> 
 
 #define PINO_RESET 14 // D5
 SI470X rx;
