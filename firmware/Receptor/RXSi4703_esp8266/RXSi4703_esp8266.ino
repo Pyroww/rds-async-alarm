@@ -159,7 +159,7 @@ void loop() {
         String novoBai = dadosIds.substring(virgula2 + 1);
         
         gravarIDsNaMemoria(novoEst, novoMun, novoBai);
-        Serial.println("EEPROM_OK"); // Avisa o Python que deu tudo certo!
+        Serial.println("EEPROM_OK"); 
       }
     }
   }
