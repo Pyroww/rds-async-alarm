@@ -8,15 +8,12 @@ SI470X rx;
 char ultimaMensagem[65] = ""; 
 const int PINO_SIRENE = 12; // D6 (Buzzer Passivo)
 
-// ==================================================
-// 2. IDENTIDADE GEOGRÁFICA DESTE NÓ (Agora são Variáveis Dinâmicas)
-// ==================================================
 const String ID_NACIONAL = "00000"; // Fixo, nunca muda
 String ID_ESTADUAL       = "00010"; // Variável
 String ID_MUNICIPAL      = "00011"; // Variável
 String ID_BAIRRO         = "00012"; // Variável
 
-// Variáveis do Motor de Estado do Alarme
+
 char estadoAlarmeAtual = '0'; // '0'=OFF, '1'=Seguro, '2'=Aviso, '3'=Crítico
 unsigned long tempoInicioAllClear = 0;
 bool tocandoAllClear = false;
@@ -83,7 +80,7 @@ void setup() {
   rx.setVolume(0); 
   rx.setRDS(true);
 
-  Serial.println("✅ Receptor Defesa Civil V2.0 (Provisionamento Ativo)");
+  Serial.println("✅ Receptor (Provisionamento Ativo)");
 }
 
 void processarPayload(String payload) {
