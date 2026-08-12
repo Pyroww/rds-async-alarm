@@ -72,15 +72,6 @@ Cada receptor mantém quatro possibilidades de identificação:
 
 O ID nacional `00000` é reservado para mensagens aceitas por **todos os receptores**.
 
-No firmware fornecido, quando ainda não existe provisionamento salvo na EEPROM, o receptor inicia com os seguintes valores padrão:
-
-```text
-ID_NACIONAL  = 00000
-ID_ESTADUAL  = 00010
-ID_MUNICIPAL = 00011
-ID_BAIRRO    = 00012
-```
-
 Ao receber uma mensagem, o nó verifica se os cinco primeiros caracteres correspondem a pelo menos um destes quatro IDs. Somente mensagens destinadas ao nó são encaminhadas para o motor de estado da sirene.
 
 ---
