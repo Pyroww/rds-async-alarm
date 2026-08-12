@@ -83,7 +83,7 @@ void setup() {
   rx.setVolume(0); 
   rx.setRDS(true);
 
-  Serial.println("✅ Receptor Defesa Civil V2.0 (Provisionamento Ativo)");
+  Serial.println("✅ Receptor (Provisionamento Ativo)");
 }
 
 void processarPayload(String payload) {
